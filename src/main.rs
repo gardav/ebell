@@ -71,7 +71,6 @@ fn joystick() -> Result<(), String> {
                 } => {
                     let bell = which as usize;
                     let side = button_idx as usize;
-                    println!("{} Button {} down", which, button_idx);
                     enigo.key_click(Key::Layout(button[bell][side]));
                 }
                 Event::Quit { .. } => break 'running,

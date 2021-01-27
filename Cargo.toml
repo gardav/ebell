@@ -1,5 +1,5 @@
 [package]
-name = "joystick"
+name = "ebell"
 version = "0.1.0"
 authors = ["Gary Davies <gary.l.davies@gmail.com>"]
 edition = "2018"

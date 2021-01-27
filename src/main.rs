@@ -22,16 +22,11 @@ fn joystick() -> Result<(), String> {
     }
 
     let key = ['j', 'f'];
-    let button = [['b', 'n'], ['g', 'g']];
+    let button = [['b', 'n'], ['g', 'S']];
     let debounce = 350;
-    let mut last_val = [0.0, 0.0, 0.0, 0.0];
-    let mut last_time = [0, 0, 0, 0];
-    let mut last_stroke = [
-        Stroke::Backstroke,
-        Stroke::Backstroke,
-        Stroke::Backstroke,
-        Stroke::Backstroke,
-    ];
+    let mut last_val = [0.0, 0.0];
+    let mut last_time = [0, 0];
+    let mut last_stroke = [Stroke::Backstroke, Stroke::Backstroke];
     let mut enigo = Enigo::new();
     let mut event_pump = sdl_context.event_pump()?;
     'running: loop {
@@ -71,7 +66,18 @@ fn joystick() -> Result<(), String> {
                 } => {
                     let bell = which as usize;
                     let side = button_idx as usize;
-                    enigo.key_click(Key::Layout(button[bell][side]));
+                    let c = button[bell][side];
+                    if c == '+' {
+                        enigo.key_sequence_parse("{+SHIFT}={-SHIFT}")
+                    } else if c.is_uppercase() {
+                        enigo.key_sequence_parse(
+                            &["{+SHIFT}", "{-SHIFT}"].join(&c.to_lowercase().to_string()),
+                        )
+                    } else if c == '\u{f704}' {
+                        enigo.key_click(Key::F4)
+                    } else {
+                        enigo.key_click(Key::Layout(c))
+                    }
                 }
                 Event::Quit { .. } => break 'running,
                 _ => (),

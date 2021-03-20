@@ -23,7 +23,7 @@ fn joystick() -> Result<(), String> {
 
     let key = ['j', 'f'];
     let button = [['b', 'n'], ['g', 'S']];
-    let debounce = 350;
+    let debounce = 450;
     let mut last_val = [0.0, 0.0];
     let mut last_time = [0, 0];
     let mut last_stroke = [Stroke::Backstroke, Stroke::Backstroke];

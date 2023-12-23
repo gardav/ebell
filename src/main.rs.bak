@@ -1,58 +1,10 @@
-//use enigo::*;
-use rdev::{simulate, EventType, Key, SimulateError};
+use enigo::*;
 use sdl2::event::Event;
-use std::thread;
-use std::time::Duration;
 
 #[derive(PartialEq)]
 enum Stroke {
     Handstroke,
     Backstroke,
-}
-
-fn send_key(key: Key) {
-    send(&EventType::KeyPress(key));
-    send(&EventType::KeyRelease(key));
-}
-
-fn send_shift_key(key: Key) {
-    send(&EventType::KeyPress(Key::ShiftLeft));
-    send_key(key);
-    send(&EventType::KeyRelease(Key::ShiftLeft));
-}
-
-fn send_function_key(key: Key) {
-    send(&EventType::KeyPress(Key::Function));
-    send_key(key);
-    send(&EventType::KeyRelease(Key::Function));
-}
-
-fn key_click(k: char) {
-    match k {
-        '1' => send_function_key(Key::F1),
-        '2' => send_function_key(Key::F2),
-        '5' => send_function_key(Key::F5),
-        '6' => send_function_key(Key::F6),
-        'j' => send_key(Key::KeyJ),
-        'f' => send_key(Key::KeyF),
-        'b' => send_key(Key::KeyB),
-        'n' => send_key(Key::KeyN),
-        'g' => send_key(Key::KeyG),
-        'S' => send_shift_key(Key::KeyS),
-        _ => panic!("Unrecognised key {}", k),
-    }
-}
-
-fn send(event_type: &EventType) {
-    let delay = Duration::from_millis(20);
-    match simulate(event_type) {
-        Ok(()) => (),
-        Err(SimulateError) => {
-            println!("We could not send {:?}", event_type);
-        }
-    }
-    // Let ths OS catchup (at least MacOS)
-    thread::sleep(delay);
 }
 
 fn joystick() -> Result<(), String> {
@@ -70,13 +22,12 @@ fn joystick() -> Result<(), String> {
     }
 
     let key = ['j', 'f'];
-    // let button = [['b', 'n'], ['g', 'S']]; // Ringing Room
-    let button = [['5', '6'], ['1', '2']]; // Mabel
-    let debounce = 400;
+    let button = [['b', 'n'], ['g', 'S']];
+    let debounce = 450;
     let mut last_val = [0.0, 0.0];
     let mut last_time = [0, 0];
     let mut last_stroke = [Stroke::Backstroke, Stroke::Backstroke];
-    //   let mut enigo = Enigo::new();
+    let mut enigo = Enigo::new();
     let mut event_pump = sdl_context.event_pump()?;
     'running: loop {
         for event in event_pump.poll_iter() {
@@ -91,22 +42,19 @@ fn joystick() -> Result<(), String> {
                         // Z axis
                         let bell = which as usize;
                         let val = value as f32 / 16960.0;
-                        let lower_pos = -0.8;
-                        let upper_pos = 0.0;
-                        if val < lower_pos
-                            && last_val[bell] >= lower_pos
+                        if val < -0.6
+                            && last_val[bell] >= -0.6
                             && last_stroke[bell] == Stroke::Handstroke
                             && timestamp - last_time[bell] > debounce
                         {
-                            key_click(key[bell]);
+                            enigo.key_click(Key::Layout(key[bell]));
                             last_stroke[bell] = Stroke::Backstroke;
                             last_time[bell] = timestamp;
-                        } else if val > upper_pos
-                            && last_val[bell] <= upper_pos
+                        } else if val > 0.0
+                            && last_val[bell] <= 0.0
                             && last_stroke[bell] == Stroke::Backstroke
-                            && timestamp - last_time[bell] > debounce
                         {
-                            key_click(key[bell]);
+                            enigo.key_click(Key::Layout(key[bell]));
                             last_stroke[bell] = Stroke::Handstroke;
                             last_time[bell] = timestamp;
                         }
@@ -119,7 +67,17 @@ fn joystick() -> Result<(), String> {
                     let bell = which as usize;
                     let side = button_idx as usize;
                     let c = button[bell][side];
-                    key_click(c);
+                    if c == '+' {
+                        enigo.key_sequence_parse("{+SHIFT}={-SHIFT}")
+                    } else if c.is_uppercase() {
+                        enigo.key_sequence_parse(
+                            &["{+SHIFT}", "{-SHIFT}"].join(&c.to_lowercase().to_string()),
+                        )
+                    } else if c == '\u{f704}' {
+                        enigo.key_click(Key::F4)
+                    } else {
+                        enigo.key_click(Key::Layout(c))
+                    }
                 }
                 Event::Quit { .. } => break 'running,
                 _ => (),
